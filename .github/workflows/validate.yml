@@ -1,0 +1,30 @@
+name: Validate free chatbot
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate static chatbot
+        run: node validate.mjs
+      - name: Check for credential-like literals
+        shell: bash
+        run: |
+          if grep -RInE --exclude-dir=.git --exclude='validate.mjs' 'sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{20,}|BEGIN (RSA|OPENSSH|PRIVATE) KEY' .; then
+            echo 'Credential-like literal found.'
+            exit 1
+          fi

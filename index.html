@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A free, private, offline-first chatbot that runs entirely in your browser.">
+  <title>Free Local Chatbot</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(16, 30, 53, .88);
+      --panel-strong: #122540;
+      --line: rgba(173, 205, 255, .16);
+      --text: #eef5ff;
+      --muted: #a6b8d3;
+      --accent: #72a7ff;
+      --accent-strong: #a6c8ff;
+      --user: #28548e;
+      --bot: #182e4e;
+      --danger: #ff8797;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top right, #173761 0, transparent 42%), var(--bg);
+      color: var(--text);
+    }
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1080px, 100%); margin: 0 auto; padding: 28px 18px 36px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    .eyebrow { color: var(--accent-strong); font-size: .76rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.7rem); line-height: 1.1; margin: 8px 0 9px; }
+    .subtitle { max-width: 690px; color: var(--muted); margin: 0; line-height: 1.55; }
+    .privacy-badge { border: 1px solid var(--line); background: rgba(114,167,255,.1); border-radius: 999px; padding: 9px 13px; color: var(--accent-strong); white-space: nowrap; font-size: .88rem; }
+    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.18); backdrop-filter: blur(12px); }
+    .chat-card { overflow: hidden; }
+    .chat-header { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .status { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .9rem; }
+    .dot { width: 9px; height: 9px; background: #64df9b; border-radius: 50%; box-shadow: 0 0 0 4px rgba(100,223,155,.12); }
+    .action-row { display: flex; gap: 8px; }
+    .ghost, .primary { border-radius: 10px; border: 1px solid var(--line); padding: 8px 11px; color: var(--text); background: transparent; }
+    .ghost:hover { background: rgba(255,255,255,.07); }
+    .primary { background: var(--accent); color: #07101d; border-color: transparent; font-weight: 700; }
+    .primary:hover { background: var(--accent-strong); }
+    .messages { min-height: 465px; max-height: 59vh; overflow: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 13px; }
+    .message { max-width: 88%; display: flex; flex-direction: column; gap: 5px; }
+    .message.user { align-self: flex-end; align-items: flex-end; }
+    .message.bot { align-self: flex-start; }
+    .bubble { padding: 12px 14px; border-radius: 15px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .user .bubble { background: var(--user); border-bottom-right-radius: 4px; }
+    .bot .bubble { background: var(--bot); border-bottom-left-radius: 4px; }
+    .message-meta { color: var(--muted); font-size: .74rem; padding: 0 4px; }
+    .composer { border-top: 1px solid var(--line); padding: 14px; display: flex; gap: 10px; align-items: flex-end; }
+    textarea { flex: 1; min-height: 48px; max-height: 150px; resize: vertical; border: 1px solid var(--line); background: rgba(4, 12, 24, .62); color: var(--text); border-radius: 12px; padding: 12px 13px; outline: none; }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(114,167,255,.14); }
+    .send { min-height: 48px; }
+    .side { padding: 18px; }
+    .side h2 { margin: 0 0 12px; font-size: 1rem; }
+    .side p, .side li { color: var(--muted); line-height: 1.5; font-size: .91rem; }
+    .side ul { margin: 0; padding-left: 18px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .chip { border: 1px solid var(--line); background: transparent; color: var(--accent-strong); border-radius: 999px; padding: 7px 10px; font-size: .82rem; }
+    .chip:hover { background: rgba(114,167,255,.12); }
+    .notice { margin-top: 16px; padding: 12px; border-left: 3px solid var(--accent); background: rgba(114,167,255,.08); color: var(--muted); font-size: .84rem; line-height: 1.45; }
+    .footer { text-align: center; color: var(--muted); margin-top: 20px; font-size: .8rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 780px) {
+      .topbar { flex-direction: column; }
+      .privacy-badge { align-self: flex-start; }
+      .layout { grid-template-columns: 1fr; }
+      .messages { min-height: 48vh; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Free • Private • Offline-first</div>
+        <h1>Free Local Chatbot</h1>
+        <p class="subtitle">A small, dependable chatbot that runs in your browser without an API key, subscription, server, or Copilot account. It is intentionally honest about its local, rule-based capabilities.</p>
+      </div>
+      <div class="privacy-badge" aria-label="Privacy status">No data leaves this browser</div>
+    </header>
+
+    <section class="layout" aria-label="Chat application">
+      <div class="card chat-card">
+        <div class="chat-header">
+          <div class="status"><span class="dot" aria-hidden="true"></span><span id="status">Local assistant ready</span></div>
+          <div class="action-row">
+            <button class="ghost" id="export" type="button">Export</button>
+            <button class="ghost" id="clear" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <form class="composer" id="composer">
+          <label class="sr-only" for="prompt">Message</label>
+          <textarea id="prompt" rows="2" maxlength="1200" placeholder="Type a message… / संदेश लिखें"></textarea>
+          <button class="primary send" type="submit">Send</button>
+        </form>
+      </div>
+
+      <aside class="card side">
+        <h2>Try a prompt</h2>
+        <div class="chips">
+          <button class="chip" type="button" data-prompt="help">Help</button>
+          <button class="chip" type="button" data-prompt="What time is it?">Time</button>
+          <button class="chip" type="button" data-prompt="Namaste">Hindi</button>
+          <button class="chip" type="button" data-prompt="Give me a short focus tip">Focus tip</button>
+          <button class="chip" type="button" data-prompt="What can you do?">Capabilities</button>
+        </div>
+        <h2 style="margin-top: 24px">What it does</h2>
+        <ul>
+          <li>Answers common greetings, help, time, date, focus, and privacy questions.</li>
+          <li>Stores the conversation only in this browser’s local storage.</li>
+          <li>Exports a plain-text transcript for your own records.</li>
+          <li>Works from a downloaded folder or any static hosting service.</li>
+        </ul>
+        <div class="notice"><strong>Privacy note:</strong> This demo has no network code and never asks for a key. For advanced AI answers, connect your own provider separately; do not place credentials in this repository.</div>
+      </aside>
+    </section>
+    <div class="footer">Open <code>index.html</code> directly. No build step required.</div>
+  </main>
+
+  <script>
+    (() => {
+      const storageKey = "free-local-chatbot-history-v1";
+      const messages = document.getElementById("messages");
+      const prompt = document.getElementById("prompt");
+      const composer = document.getElementById("composer");
+      const status = document.getElementById("status");
+      let history = loadHistory();
+
+      function loadHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) { return []; }
+      }
+
+      function saveHistory() {
+        try { localStorage.setItem(storageKey, JSON.stringify(history.slice(-80))); } catch (_) { /* private mode can disable storage */ }
+      }
+
+      function addMessage(role, text, persist = true) {
+        const item = { role, text, at: new Date().toISOString() };
+        history.push(item);
+        const wrapper = document.createElement("article");
+        wrapper.className = `message ${role}`;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+        const meta = document.createElement("div");
+        meta.className = "message-meta";
+        meta.textContent = `${role === "user" ? "You" : "Local assistant"} • ${formatTime(item.at)}`;
+        wrapper.append(bubble, meta);
+        messages.appendChild(wrapper);
+        messages.scrollTop = messages.scrollHeight;
+        if (persist) saveHistory();
+      }
+
+      function formatTime(value) {
+        return new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(new Date(value));
+      }
+
+      function reply(input) {
+        const text = input.trim();
+        const lower = text.toLowerCase();
+        if (!text) return "Please write a message first. कृपया पहले संदेश लिखें।";
+        if (/^(hi|hello|hey|namaste|नमस्ते|हेलो)\b/i.test(text)) return "Namaste! मैं आपका free local assistant हूँ। आप help लिखकर capabilities देख सकते हैं।";
+        if (lower === "help" || lower.includes("what can you do") || lower.includes("क्या कर")) return "मैं greetings, समय/तारीख, privacy, focus tips और basic help संभाल सकता हूँ। यह offline rule-based demo है; live web search या private account access नहीं करता।";
+        if (lower.includes("time") || lower.includes("समय")) return `आपके device के अनुसार समय ${new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(new Date())} है।`;
+        if (lower.includes("date") || lower.includes("तारीख") || lower.includes("आज")) return `आज की तारीख ${new Intl.DateTimeFormat([], { dateStyle: "full" }).format(new Date())} है।`;
+        if (lower.includes("privacy") || lower.includes("private") || lower.includes("डेटा")) return "यह chatbot network request नहीं करता। बातचीत केवल इसी browser के localStorage में रहती है और Export करने पर ही file बनती है।";
+        if (lower.includes("focus") || lower.includes("ध्यान")) return "एक छोटा कदम चुनिए, 15 मिनट का timer लगाइए, notifications बंद कीजिए, और केवल उसी कदम को पूरा कीजिए।";
+        if (lower.includes("copilot") || lower.includes("limit")) return "यह chatbot Copilot पर निर्भर नहीं है। यह local demo है, इसलिए कोई paid quota या API key नहीं चाहिए।";
+        if (lower.includes("thank") || lower.includes("धन्यवाद")) return "आपका स्वागत है।";
+        return "मैंने आपका संदेश पढ़ा। इस free offline version में बेहतर परिणाम के लिए help, time, date, privacy या focus जैसे छोटे prompts आज़माएँ। Advanced AI के लिए किसी provider को अपनी तरफ से सुरक्षित तरीके से जोड़ना होगा।";
+      }
+
+      function render() {
+        messages.replaceChildren();
+        if (!history.length) addMessage("bot", "Namaste! मैं आपका free, private local chatbot हूँ। Help लिखकर शुरू करें।", false);
+        else history.forEach(item => addMessage(item.role, item.text, false));
+      }
+
+      composer.addEventListener("submit", event => {
+        event.preventDefault();
+        const text = prompt.value.trim();
+        if (!text) return;
+        addMessage("user", text);
+        status.textContent = "Local response generated";
+        window.setTimeout(() => addMessage("bot", reply(text)), 120);
+        prompt.value = "";
+        prompt.focus();
+      });
+
+      prompt.addEventListener("keydown", event => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          composer.requestSubmit();
+        }
+      });
+
+      document.querySelectorAll("[data-prompt]").forEach(button => button.addEventListener("click", () => {
+        prompt.value = button.dataset.prompt;
+        composer.requestSubmit();
+      }));
+
+      document.getElementById("clear").addEventListener("click", () => {
+        history = [];
+        saveHistory();
+        render();
+        status.textContent = "Conversation cleared";
+      });
+
+      document.getElementById("export").addEventListener("click", () => {
+        const transcript = history.map(item => `[${new Date(item.at).toLocaleString()}] ${item.role === "user" ? "You" : "Local assistant"}: ${item.text}`).join("\n\n");
+        const blob = new Blob([transcript || "No messages yet."], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "free-local-chatbot-transcript.txt";
+        link.click();
+        URL.revokeObjectURL(url);
+        status.textContent = "Transcript exported";
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
